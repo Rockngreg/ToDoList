@@ -1,0 +1,19 @@
+SELECT 
+    FORMAT(h.invdate, 'yyyy-MM') AS InvoiceMonth,
+    h.name AS CustomerName,
+    SUM(i.bylinetotal) AS MonthlyTotal,
+    SUM(SUM(i.bylinetotal)) OVER (PARTITION BY FORMAT(h.invdate, 'yyyy-MM')) AS TotalMonthRevenue,
+    ROUND(
+        100.0 * SUM(i.bylinetotal) / 
+        SUM(SUM(i.bylinetotal)) OVER (PARTITION BY FORMAT(h.invdate, 'yyyy-MM')), 2
+    ) AS PercentOfMonth
+FROM 
+    invoicehdr h
+INNER JOIN 
+    invoiceitem i ON h.invno = i.invno
+GROUP BY 
+    FORMAT(h.invdate, 'yyyy-MM'),
+    h.name
+ORDER BY 
+    InvoiceMonth DESC,
+    CustomerName;

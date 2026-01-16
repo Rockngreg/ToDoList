@@ -1,0 +1,35 @@
+import pandas as pd
+
+# Load the CSV file
+df = pd.read_csv("Invoice out put.csv", low_memory=False)
+
+# Parse invoice date
+df['invdate'] = pd.to_datetime(df['invdate'], errors='coerce')
+
+# Drop rows with invalid dates or missing customer names
+df = df.dropna(subset=['invdate', 'name'])
+
+# Create a 'month' column for grouping
+df['InvoiceMonth'] = df['invdate'].dt.to_period('M').astype(str)
+
+# Ensure bylinetotal is numeric
+df['bylinetotal'] = pd.to_numeric(df['bylinetotal'], errors='coerce').fillna(0)
+
+# Group by month and customer
+grouped = df.groupby(['InvoiceMonth', 'name'], as_index=False)['bylinetotal'].sum()
+grouped.rename(columns={'bylinetotal': 'MonthlyTotal'}, inplace=True)
+
+# Calculate total revenue per month
+grouped['TotalMonthRevenue'] = grouped.groupby('InvoiceMonth')['MonthlyTotal'].transform('sum')
+
+# Calculate percentage of monthly total
+grouped['PercentOfMonth'] = round(100 * grouped['MonthlyTotal'] / grouped['TotalMonthRevenue'], 2)
+
+# Sort by newest month first
+grouped = grouped.sort_values(by=['InvoiceMonth', 'name'], ascending=[False, True])
+
+# Display the result
+print(grouped)
+
+# Optional: Save to Excel
+grouped.to_excel("Monthly_Totals_By_Customer.xlsx", index=False)
